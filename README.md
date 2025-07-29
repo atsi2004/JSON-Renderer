@@ -15,8 +15,7 @@ A simple, interactive React application that visualizes deeply nested JSON struc
 
 ## 📸 Screenshot
 
-![App Preview](blob:https://imgur.com/58a310a0-cc11-47ad-82a8-4256efaef109) 
-
+![App Preview](https://i.imgur.com/T3WPjo5.png) <!-- Optional: Include this if you plan to add a screenshot -->
 ---
 
 ## 🛠️ Tech Stack
