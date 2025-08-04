@@ -6,110 +6,128 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
-import { isPrimitive, isObject, isArrayOfObjects } from './ObjectOrPrimitive';
 
-
-
-type JSONValue = string | number | boolean | null | JSONValue[] | JSONObject; 
-interface JSONObject {
-  [key: string]: JSONValue;
+function isObject(value: any): boolean {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function getUnionKeys(data: object[]): string[] {
+  const keysSet = new Set<string>();
+  data.forEach((obj) => {
+    Object.keys(obj).forEach((key) => keysSet.add(key));
+  });
+  return Array.from(keysSet);
+}
 
-// Component
-const NestedJSONViewer = ({ data, label }: { data: any; label?: string }) => { 
-  if (!data || typeof data !== 'object') return null;
-
-  // Filtering data to get entries
-  const entries = Object.entries(data);
-
-
-  // Collecting primitive values and their keys
-  const primitiveEntries = entries.filter(([_, value]) => isPrimitive(value)); // Filtering primitive values 
-  const rows = primitiveEntries.map(([key, value], index) => ({ // Mapping to rows 
-    id: index,
-    key,
-    value: String(value),
-  }));
-
-  
-  const columns: GridColDef[] = [ // Defining columns for DataGrid
-    { field: 'key', headerName: 'Key', width: 150 },
-    { field: 'value', headerName: 'Value', width: 300 },
-  ];
-
-  // Render nested objects or arrays recursively as nested
-  const nestedViews = entries
-    .filter(([_, value]) => !isPrimitive(value)) // If value is not primitive
-    .map(([key, value]) => {
-      if (isObject(value)) {
-        return <NestedJSONViewer key={key} data={value} label={key} />; // Return nested component for objects
-      }
-
-      if (Array.isArray(value)) { //Array logic
-        if (isArrayOfObjects(value)) { // Check if array contains objects
-          // If array contains objects, create a DataGrid for them
-          // Union all keys from all objects
-          const allKeys = Array.from(
-            new Set(value.flatMap((item) => Object.keys(item))) // Collecting all keys from objects
-          );
-
-          const cols: GridColDef[] = allKeys.map((key) => ({ // Creating columns for DataGrid
-            field: key,
-            headerName: key,
-            width: 150,
-          }));
-
-          const rows = value.map((item, index) => ({ // Mapping array items to rows
-            id: index,
-            ...item, 
-          }));
-          
-          // Return an Accordion with DataGrid for the array of objects
-          return (
-            <Accordion key={key} defaultExpanded> 
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}> 
-                <Typography>{key}</Typography> 
-              </AccordionSummary> 
-              <AccordionDetails>
-                <div style={{ height: rows.length * 52 + 56, width: '100%', marginBottom: '1rem' }}>
-                  <DataGrid rows={rows} columns={cols} hideFooter /> 
-                </div>
-              </AccordionDetails>
-            </Accordion>
-          );
-        } else {
-          // If array is not of objects, display it as a raw array
-          return (
-            <Accordion key={key} defaultExpanded>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>{key} (raw array)</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography>{JSON.stringify(value, null, 2)}</Typography>
-              </AccordionDetails>
-            </Accordion>
-          );
-        }
-      }
-
-      return null;
-    });
-
-  return ( // Anatomy
-    <Accordion defaultExpanded>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>{label || 'Root'}</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        {rows.length > 0 && (
-          <div style={{ height: rows.length * 52 + 56, width: '100%', marginBottom: '1rem' }}>
-            <DataGrid rows={rows} columns={columns} hideFooter />
+function generateColumns(data: object[]): GridColDef[] {
+  const keys = getUnionKeys(data);
+  return keys.map((key) => ({
+    field: key,
+    headerName: key,
+    flex: 1,
+    renderCell: (params) => {
+      const value = params.value;
+      if (Array.isArray(value) && value.every(isObject)) {
+        return (
+          <div style={{ width: '100%' }}>
+            <NestedJSONViewer data={value} label={key} />
           </div>
-        )}
-        {nestedViews}
-      </AccordionDetails>
-    </Accordion>
+        );
+      } else if (isObject(value)) {
+        return (
+          <div style={{ width: '100%' }}>
+            <NestedJSONViewer data={value} label={key} />
+          </div>
+        );
+      }
+      return String(value ?? '');
+    },
+  }));
+}
+
+const NestedJSONViewer = ({
+  data,
+  label,
+}: {
+  data: any;
+  label: string;
+}) => {
+  if (Array.isArray(data) && data.every(isObject)) {
+    // Custom handling for "orders" to avoid putting accordions inside DataGrid cells
+    if (label === 'orders') {
+      return (
+        <Accordion defaultExpanded>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography>{label}</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            {data.map((order: any, idx: number) => (
+              <Accordion key={idx} defaultExpanded>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>Order ID: {order.orderId}</Typography>
+                </AccordionSummary>
+                <AccordionDetails style={{ paddingLeft: '1rem' }}>
+                  <NestedJSONViewer data={order.items} label="items" />
+                </AccordionDetails>
+              </Accordion>
+            ))}
+          </AccordionDetails>
+        </Accordion>
+      );
+    }
+
+    const columns = generateColumns(data);
+    return (
+      <Accordion defaultExpanded>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography>{label}</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <div style={{ maxHeight: 400, overflow: 'auto', width: '100%' }}>
+            <DataGrid
+              rows={data.map((row, idx) => ({ id: idx, ...row }))}
+              columns={columns}
+              autoHeight={false}
+              hideFooter
+              density="compact"
+              sx={{
+                '& .MuiDataGrid-virtualScroller': {
+                  scrollbarWidth: 'none',
+                  '&::-webkit-scrollbar': { display: 'none' },
+                },
+              }}
+            />
+          </div>
+        </AccordionDetails>
+      </Accordion>
+    );
+  }
+
+  if (isObject(data)) {
+    return (
+      <Accordion defaultExpanded>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography>{label}</Typography>
+        </AccordionSummary>
+        <AccordionDetails style={{ paddingLeft: '1rem' }}>
+          {Object.entries(data).map(([key, value], idx) => (
+            <NestedJSONViewer key={idx} data={value} label={key} />
+          ))}
+        </AccordionDetails>
+      </Accordion>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        textAlign: 'left',
+        paddingLeft: '1rem',
+        marginBottom: '0.5rem',
+      }}
+    >
+      <strong>{label}:</strong> {String(data)}
+    </div>
   );
 };
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import NestedJSONViewer from './components/NestedJSONViewer';
 import rawData from './data/sample.json';
+import './App.css';
 
 function App() {
   const [jsonInput, setJsonInput] = useState(JSON.stringify(rawData.Test, null, 2));
@@ -20,15 +21,11 @@ function App() {
 
   return (
     <div style={{ display: 'flex', padding: '2rem', gap: '2rem' }}>
-      {/* LEFT SIDE: JSON Viewer (unchanged position) */}
-      <div style={{ flex: 1 }}>
-        <NestedJSONViewer data={parsedJSON} label="Root" />
-      </div>
-
-      {/* RIGHT SIDE: JSON Editor */}
+      {/* LEFT SIDE: JSON Editor */}
       <div style={{ width: '400px' }}>
         <h2 style={{ marginTop: 0 }}>Enter Your JSON</h2>
         <textarea
+          className="hide-scrollbar"
           value={jsonInput}
           onChange={handleInputChange}
           rows={20}
@@ -41,8 +38,14 @@ function App() {
         />
         {error && <p style={{ color: 'red' }}>{error}</p>}
       </div>
+
+      {/* RIGHT SIDE: JSON Viewer */}
+      <div style={{ flex: 1 }}>
+        <NestedJSONViewer data={parsedJSON} label="JSON" />
+      </div>
     </div>
   );
+
 }
 
 export default App;

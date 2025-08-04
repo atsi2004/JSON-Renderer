@@ -12,6 +12,37 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+/* Hide scrollbars */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+
+.MuiDataGrid-root,
+.MuiDataGrid-virtualScroller,
+.MuiDataGrid-window,
+.MuiDataGrid-main,
+.MuiDataGrid-renderingZone {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.MuiDataGrid-root::-webkit-scrollbar,
+.MuiDataGrid-virtualScroller::-webkit-scrollbar,
+.MuiDataGrid-window::-webkit-scrollbar,
+.MuiDataGrid-main::-webkit-scrollbar,
+.MuiDataGrid-renderingZone::-webkit-scrollbar {
+  display: none !important;
+}
+
+
+
+
 
 a {
   font-weight: 500;
@@ -24,11 +55,13 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  padding: 2rem;
+  display: block;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #242424;
 }
+
 
 h1 {
   font-size: 3.2em;
